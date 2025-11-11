@@ -112,8 +112,19 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private db: any;
 
+  import fs from "fs";
+  
   constructor() {
-    const sql_conn = postgres(process.env.DATABASE_URL!);
+    const sql_conn = process.env.DATABASE_URL!;
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL is not set');
+    }
+    // Option A: quick (recommended for cloud containers)
+    const sql_conn = postgres(DATABASE_URL, {
+      ssl: {rejectUnauthorized: flase }
+
+    });
+    
     this.db = drizzle(sql_conn);
   }
 
