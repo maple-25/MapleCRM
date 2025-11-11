@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ user: { ...user, password: undefined } });
     } catch (error) {
-  console.error('[auth] login error:', error);
+  console.error('[auth] login error':, error);
   res.status(500).json({ message: "Internal server error" });
 }
   });
