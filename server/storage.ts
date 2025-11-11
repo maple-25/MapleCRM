@@ -7,7 +7,7 @@ import {
   type UserMasterDataPermission, type InsertUserMasterDataPermission
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/postgres-js";
-  import fs from "fs";
+import fs from "fs";
 import postgres from "postgres";
 import { users, partners, leads, clients, projects, projectMembers, projectComments, clientComments, fundTracker, teamMembers, clientMasterData, userMasterDataPermissions } from "@shared/schema";
 import { eq, sql, desc, and, or, ne, isNotNull } from "drizzle-orm";
