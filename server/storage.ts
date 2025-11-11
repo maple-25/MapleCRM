@@ -128,6 +128,14 @@ export class DatabaseStorage implements IStorage {
     this.db = drizzle(sql_conn);
   }
 
+  try {
+  //run a lightweight test to force connection and surface auth/ssl errors
+  await sql_conn`SELECT 1`;
+  console.log('[db] Connected to DB successfully');
+} catch (err) {
+  console.error('[[db] Initial connection failed:' err);
+}
+
   // Users
   async getUser(id: string): Promise<User | undefined> {
     const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
