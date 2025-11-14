@@ -114,31 +114,29 @@ export class DatabaseStorage implements IStorage {
   private db: any;
   
  constructor() {
-  // Read DB URL (use a distinct variable name)
   const DATABASE_URL = process.env.DATABASE_URL!;
   if (!DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set');
+    throw new Error("DATABASE_URL is not set");
   }
 
-  // Create a single 'sql_conn' (do NOT declare it twice)
+  // Log masked URL (helps confirm Railway is using correct DB string)
+  console.log("[db] connecting to", DATABASE_URL.replace(/:(.*)@/, ":*****@"));
+
+  // Create Postgres connection
   const sql_conn = postgres(DATABASE_URL, {
-    // fixed typo: `false` not `flase`
     ssl: { rejectUnauthorized: false },
+    max: 10,
   });
 
-  // Initialize drizzle with the postgres connection
+  // Create Drizzle instance
   this.db = drizzle(sql_conn);
 
-  // Run a lightweight connection test. Cannot `await` inside constructor,
-  // so use a promise .then/.catch to surface errors without async constructor.
+  // Lightweight connection test
   sql_conn`SELECT 1`
-    .then(() => {
-      console.log('[db] Connected to DB successfully');
-    })
-    .catch((err: unknown) => {
-      console.error('[[db] Initial connection failed:]', err);
-    });
+    .then(() => console.log("[db] Connected to DB successfully"))
+    .catch((err: unknown) => console.error("[[db] Initial connection failed:]", err));
 }
+
 
 
   // Users
