@@ -114,24 +114,46 @@ export class DatabaseStorage implements IStorage {
   private db: any;
   
  constructor() {
-  const DATABASE_URL = process.env.DATABASE_URL!;
-  if (!DATABASE_URL) {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) {
     throw new Error("DATABASE_URL is not set");
   }
 
-  // Log masked URL (helps confirm Railway is using correct DB string)
-  console.log("[db] connecting to", DATABASE_URL.replace(/:(.*)@/, ":*****@"));
+  // Safer masking (non-greedy) — won't swallow username when logging
+  const masked = raw.replace(/:(.+?)@/, ":*****@");
+  console.log("[db] connecting to", masked);
 
-  // Create Postgres connection
-  const sql_conn = postgres(DATABASE_URL, {
-    ssl: { rejectUnauthorized: false },
-    max: 10,
-  });
+  // Parse URL cleanly
+  let sql_conn;
+  try {
+    const url = new URL(raw);
 
-  // Create Drizzle instance
+    const username = decodeURIComponent(url.username || "");
+    const password = decodeURIComponent(url.password || "");
+    const host = url.hostname;
+    const port = Number(url.port || 5432);
+    const database = url.pathname ? url.pathname.replace(/^\//, "") : "";
+
+    console.log(`[db] parsed host=${host} port=${port} user=${username ? username[0] + "*****" : "unknown"} db=${database}`);
+
+    // Connect using object config (avoids URL-encoding pitfalls)
+    sql_conn = postgres({
+      host,
+      port,
+      database,
+      username,
+      password,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+    });
+  } catch (err) {
+    console.error("[db] Failed to parse DATABASE_URL:", err);
+    throw err;
+  }
+
   this.db = drizzle(sql_conn);
 
-  // Lightweight connection test
+  // test connection (promise chain allowed in constructor)
   sql_conn`SELECT 1`
     .then(() => console.log("[db] Connected to DB successfully"))
     .catch((err: unknown) => console.error("[[db] Initial connection failed:]", err));
