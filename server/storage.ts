@@ -113,27 +113,33 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private db: any;
   
-  constructor() {
-    const sql_conn = process.env.DATABASE_URL!;
-    if (!DATABASE_URL) {
-      throw new Error('DATABASE_URL is not set');
-    }
-    // Option A: quick (recommended for cloud containers)
-    const sql_conn = postgres(DATABASE_URL, {
-      ssl: {rejectUnauthorized: flase }
-
-    });
-    
-    this.db = drizzle(sql_conn);
+ constructor() {
+  // Read DB URL (use a distinct variable name)
+  const DATABASE_URL = process.env.DATABASE_URL!;
+  if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set');
   }
 
-  try {
-  //run a lightweight test to force connection and surface auth/ssl errors
-  await sql_conn`SELECT 1`;
-  console.log('[db] Connected to DB successfully');
-} catch (err) {
-  console.error('[[db] Initial connection failed:' err);
+  // Create a single 'sql_conn' (do NOT declare it twice)
+  const sql_conn = postgres(DATABASE_URL, {
+    // fixed typo: `false` not `flase`
+    ssl: { rejectUnauthorized: false },
+  });
+
+  // Initialize drizzle with the postgres connection
+  this.db = drizzle(sql_conn);
+
+  // Run a lightweight connection test. Cannot `await` inside constructor,
+  // so use a promise .then/.catch to surface errors without async constructor.
+  sql_conn`SELECT 1`
+    .then(() => {
+      console.log('[db] Connected to DB successfully');
+    })
+    .catch((err: unknown) => {
+      console.error('[[db] Initial connection failed:]', err);
+    });
 }
+
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
