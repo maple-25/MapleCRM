@@ -11,6 +11,7 @@ import fs from "fs";
 import postgres from "postgres";
 import { users, partners, leads, clients, projects, projectMembers, projectComments, clientComments, fundTracker, teamMembers, clientMasterData, userMasterDataPermissions } from "@shared/schema";
 import { eq, sql, desc, and, or, ne, isNotNull } from "drizzle-orm";
+import dns from "dns/promises";
 
 export interface IStorage {
   // Users
@@ -114,30 +115,42 @@ export class DatabaseStorage implements IStorage {
   private db: any;
   
  constructor() {
-  const raw = process.env.DATABASE_URL;
-  if (!raw) {
-    throw new Error("DATABASE_URL is not set");
-  }
+  // Start the async init in background (constructors can't be async)
+  // We intentionally don't await here so app boot isn't blocked.
+  void this.initDb();
+}
 
-  // Safer masking (non-greedy) — won't swallow username when logging
-  const masked = raw.replace(/:(.+?)@/, ":*****@");
-  console.log("[db] connecting to", masked);
-
-  // Parse URL cleanly
-  let sql_conn;
+private async initDb() {
   try {
-    const url = new URL(raw);
+    const DATABASE_URL = process.env.DATABASE_URL;
+    if (!DATABASE_URL) {
+      throw new Error("DATABASE_URL is not set");
+    }
 
-    const username = decodeURIComponent(url.username || "");
-    const password = decodeURIComponent(url.password || "");
-    const host = url.hostname;
+    const url = new URL(DATABASE_URL);
+    const rawHost = url.hostname;
+    let host = rawHost;
+
+    // Prefer IPv4 address to avoid ENETUNREACH on IPv6-only routes
+    try {
+      const lookup = await dns.lookup(rawHost, { family: 4 });
+      host = lookup.address;
+      console.log("[db] resolved IPv4 address:", host);
+    } catch (err) {
+      // If IPv4 resolution fails, fall back to hostname (still OK).
+      console.log("[db] could not resolve IPv4; using hostname:", rawHost);
+    }
+
+    const username = decodeURIComponent(url.username);
+    const password = decodeURIComponent(url.password);
     const port = Number(url.port || 5432);
-    const database = url.pathname ? url.pathname.replace(/^\//, "") : "";
+    const database = url.pathname.replace(/^\//, "");
 
-    console.log(`[db] parsed host=${host} port=${port} user=${username ? username[0] + "*****" : "unknown"} db=${database}`);
+    // Masked log for safety
+    console.log("[db] connecting to", `${url.protocol}//${username[0] || "u"}*****@${host}:${port}/${database}`);
 
-    // Connect using object config (avoids URL-encoding pitfalls)
-    sql_conn = postgres({
+    // Create Postgres client using explicit host (IPv4 or hostname)
+    const sql_conn = postgres({
       host,
       port,
       database,
@@ -145,21 +158,22 @@ export class DatabaseStorage implements IStorage {
       password,
       ssl: { rejectUnauthorized: false },
       max: 10,
+      application_name: "maplecrm-railway",
     });
+
+    // Attach drizzle
+    this.db = drizzle(sql_conn);
+
+    // Lightweight connection test
+    await sql_conn`SELECT 1`;
+    console.log("[db] Connected to DB successfully");
   } catch (err) {
-    console.error("[db] Failed to parse DATABASE_URL:", err);
-    throw err;
+    // Print a concise error code/message for debugging in Railway logs
+    console.error("[[db] Initial connection failed:]", (err as any)?.code ?? err);
   }
-
-  this.db = drizzle(sql_conn);
-
-  // test connection (promise chain allowed in constructor)
-  sql_conn`SELECT 1`
-    .then(() => console.log("[db] Connected to DB successfully"))
-    .catch((err: unknown) => console.error("[[db] Initial connection failed:]", err));
 }
 
-
+  
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
