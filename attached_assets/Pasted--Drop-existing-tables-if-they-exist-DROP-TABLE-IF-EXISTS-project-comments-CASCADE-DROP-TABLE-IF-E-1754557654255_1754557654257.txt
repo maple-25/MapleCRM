@@ -1,0 +1,154 @@
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS project_comments CASCADE;
+DROP TABLE IF EXISTS project_members CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS leads CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
+DROP TABLE IF EXISTS partners CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Drop existing types
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS lead_status CASCADE;
+DROP TYPE IF EXISTS client_status CASCADE;
+DROP TYPE IF EXISTS project_status CASCADE;
+DROP TYPE IF EXISTS project_priority CASCADE;
+DROP TYPE IF EXISTS comment_type CASCADE;
+DROP TYPE IF EXISTS sector CASCADE;
+DROP TYPE IF EXISTS transaction_type CASCADE;
+DROP TYPE IF EXISTS source_type CASCADE;
+DROP TYPE IF EXISTS inbound_source CASCADE;
+DROP TYPE IF EXISTS acceptance_stage CASCADE;
+DROP TYPE IF EXISTS assigned_to CASCADE;
+
+-- Create ENUM types
+CREATE TYPE user_role AS ENUM ('admin', 'user');
+CREATE TYPE lead_status AS ENUM ('Initial Discussion', 'NDA', 'Engagement');
+CREATE TYPE client_status AS ENUM ('NDA Shared', 'NDA Signed', 'IM/Financial Model', 'Investor Tracker', 'Term Sheet', 'Due Diligence', 'Agreement', 'Transaction closed');
+CREATE TYPE project_status AS ENUM ('planning', 'active', 'on_hold', 'completed', 'cancelled');
+CREATE TYPE project_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+CREATE TYPE comment_type AS ENUM ('update', 'change', 'feedback');
+CREATE TYPE sector AS ENUM ('Technology', 'Manufacturing', 'Healthcare', 'Energy', 'Real Estate', 'Consumer Goods', 'Others');
+CREATE TYPE transaction_type AS ENUM ('M&A', 'Fundraising', 'Debt Financing', 'Strategic Advisory', 'Others');
+CREATE TYPE source_type AS ENUM ('Inbound', 'Outbound');
+CREATE TYPE inbound_source AS ENUM ('Kotak Wealth', '360 Wealth', 'LGT', 'Pandion Partners', 'Others');
+CREATE TYPE acceptance_stage AS ENUM ('Undecided', 'Accepted', 'Rejected');
+CREATE TYPE assigned_to AS ENUM ('Pankaj Karna', 'Nitin Gupta', 'Abhinav Grover', 'Manish Johari', 'Aakash Jain', 'Ojasva Chugh', 'Ujjwal Jha', 'Devapi Singh');
+
+-- Create users table
+CREATE TABLE users (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  username text NOT NULL UNIQUE,
+  password text NOT NULL,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  role user_role NOT NULL DEFAULT 'user',
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Create partners table (for affiliate partner management)
+CREATE TABLE partners (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text,
+  phone text,
+  website text,
+  commission_rate decimal(5,2) DEFAULT 0.00,
+  is_active text NOT NULL DEFAULT 'true',
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Create clients table (must be before leads due to reference)
+CREATE TABLE clients (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name text NOT NULL,
+  sector sector NOT NULL,
+  custom_sector text,
+  transaction_type transaction_type NOT NULL,
+  custom_transaction_type text,
+  client_poc text NOT NULL,
+  phone_number text,
+  email_id text NOT NULL,
+  last_contacted timestamp with time zone,
+  status client_status NOT NULL DEFAULT 'NDA Shared',
+  assigned_to assigned_to NOT NULL,
+  converted_from_lead_id text,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Create leads table
+CREATE TABLE leads (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name text NOT NULL,
+  sector sector NOT NULL,
+  custom_sector text,
+  transaction_type transaction_type NOT NULL,
+  custom_transaction_type text,
+  client_poc text NOT NULL,
+  phone_number text,
+  email_id text NOT NULL,
+  first_contacted timestamp with time zone,
+  last_contacted timestamp with time zone,
+  source_type source_type NOT NULL,
+  inbound_source inbound_source,
+  custom_inbound_source text,
+  outbound_source text,
+  acceptance_stage acceptance_stage NOT NULL DEFAULT 'Undecided',
+  status lead_status NOT NULL DEFAULT 'Initial Discussion',
+  assigned_to assigned_to NOT NULL,
+  is_converted text DEFAULT 'false',
+  converted_client_id text REFERENCES clients(id),
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Create projects table (with priority and enhanced tracking)
+CREATE TABLE projects (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  priority project_priority NOT NULL DEFAULT 'medium',
+  status project_status NOT NULL DEFAULT 'planning',
+  start_date timestamp with time zone,
+  due_date timestamp with time zone,
+  client_id text REFERENCES clients(id),
+  owner_id text NOT NULL REFERENCES users(id),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Create project_comments table (for project updates, changes, feedback)
+CREATE TABLE project_comments (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id),
+  comment_type comment_type NOT NULL,
+  content text NOT NULL,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Create project_members table (for access control - only creator and admin can see)
+CREATE TABLE project_members (
+  id text PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id),
+  can_edit text NOT NULL DEFAULT 'false',
+  created_at timestamp with time zone DEFAULT now(),
+  UNIQUE(project_id, user_id)
+);
+
+-- Insert default admin user
+INSERT INTO users (email, username, password, first_name, last_name, role) 
+VALUES ('admin@crmpro.com', 'admin', 'admin123', 'John', 'Doe', 'admin');
+
+-- Insert affiliate partners (these will correspond to the 5 tabs)
+INSERT INTO partners (name, email, phone, website, commission_rate, is_active) VALUES
+('Kotak Wealth Management', 'contact@kotakwealth.com', '+91-22-6618-6618', 'https://www.kotakwealth.com', 2.50, 'true'),
+('360 Wealth', 'info@360one.co.in', '+91-22-6159-3000', 'https://www.360one.co.in', 3.00, 'true'),
+('LGT', 'india@lgt.com', '+91-22-6179-8000', 'https://www.lgt.in', 2.75, 'true'),
+('Pandion Partners', 'contact@pandionpartners.com', '+91-11-4950-5000', 'https://www.pandionpartners.com', 3.25, 'true'),
+('Others', null, null, null, 0.00, 'true');
