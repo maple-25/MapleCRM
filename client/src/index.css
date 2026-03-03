@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sticky table column fix */
+.sticky-table-container {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.sticky-column {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 20 !important;
+  background-color: white;
+  width: 250px !important;
+  max-width: 250px !important;
+  min-width: 250px !important;
+  border-right: 1px solid rgb(226 232 240);
+}
+
+.dark .sticky-column {
+  background-color: rgb(17 24 39);
+}
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(222.2, 84%, 4.9%);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: hsl(215.4, 16.3%, 46.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(222.2, 84%, 4.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(222.2, 84%, 4.9%);
+  --border: hsl(214.3, 31.8%, 91.4%);
+  --input: hsl(214.3, 31.8%, 91.4%);
+  /* Navy Blue Primary - #1b1393 */
+  --primary: hsl(244, 84%, 32%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  /* Maple Red Secondary - #c32312 */
+  --secondary: hsl(6, 83%, 42%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  /* Light blue accent */
+  --accent: hsl(244, 84%, 97%);
+  --accent-foreground: hsl(244, 84%, 32%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --success: hsl(142.1, 76.2%, 36.3%);
+  --success-foreground: hsl(0, 0%, 100%);
+  --warning: hsl(32.1, 94.6%, 43.7%);
+  --warning-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(244, 84%, 32%);
+  --radius: 0.5rem;
+  
+  /* Custom Maple Capital colors */
+  --maple-red: hsl(6, 83%, 42%);
+  --maple-red-light: hsl(6, 83%, 97%);
+  --maple-red-dark: hsl(6, 83%, 32%);
+  --navy-blue: hsl(244, 84%, 32%);
+  --navy-blue-light: hsl(244, 84%, 97%);
+  --navy-blue-dark: hsl(244, 84%, 22%);
+}
+
+.dark {
+  --background: hsl(222.2, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217.2, 32.6%, 17.5%);
+  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --popover: hsl(222.2, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222.2, 84%, 4.9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217.2, 32.6%, 17.5%);
+  --input: hsl(217.2, 32.6%, 17.5%);
+  /* Navy Blue Primary - slightly lighter for dark mode */
+  --primary: hsl(244, 84%, 42%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  /* Maple Red Secondary - lighter for dark mode */
+  --secondary: hsl(6, 83%, 52%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(244, 84%, 15%);
+  --accent-foreground: hsl(244, 84%, 42%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --success: hsl(142.1, 76.2%, 36.3%);
+  --success-foreground: hsl(355.7, 100%, 97.3%);
+  --warning: hsl(32.1, 94.6%, 43.7%);
+  --warning-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(244, 84%, 42%);
+  
+  /* Custom Maple Capital colors - Dark Mode */
+  --maple-red: hsl(6, 83%, 52%);
+  --maple-red-light: hsl(6, 83%, 15%);
+  --maple-red-dark: hsl(6, 83%, 42%);
+  --navy-blue: hsl(244, 84%, 42%);
+  --navy-blue-light: hsl(244, 84%, 20%);
+  --navy-blue-dark: hsl(244, 84%, 32%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-success {
+    color: hsl(var(--success));
+  }
+  
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+  
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  
+  .border-success {
+    border-color: hsl(var(--success));
+  }
+  
+  .border-warning {
+    border-color: hsl(var(--warning));
+  }
+  
+  /* Maple Capital Advisors brand utilities */
+  .text-maple-red {
+    color: hsl(var(--maple-red));
+  }
+  
+  .text-navy-blue {
+    color: hsl(var(--navy-blue));
+  }
+  
+  .bg-maple-red {
+    background-color: hsl(var(--maple-red));
+  }
+  
+  .bg-navy-blue {
+    background-color: hsl(var(--navy-blue));
+  }
+  
+  .bg-maple-red-light {
+    background-color: hsl(var(--maple-red-light));
+  }
+  
+  .bg-navy-blue-light {
+    background-color: hsl(var(--navy-blue-light));
+  }
+  
+  .border-maple-red {
+    border-color: hsl(var(--maple-red));
+  }
+  
+  .border-navy-blue {
+    border-color: hsl(var(--navy-blue));
+  }
+}
